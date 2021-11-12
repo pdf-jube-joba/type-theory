@@ -1,0 +1,121 @@
+\documentclass[dvipdfmx]{jsarticle}
+
+\usepackage{amsmath , amssymb}
+\usepackage{proof , syntax , simplebnf}
+\usepackage{color}
+\usepackage{ascmac}
+
+\newcommand{\clause}[1]{\langle #1 \rangle}
+
+\begin{document}
+
+型なしラムダ計算のまとめ。
+
+\begin{itembox}[l]{項の定義}
+  \begin{bnfgrammar}
+    <term> ::= : t , M
+    | <variable> : x
+    | Fun <variable> <term>
+    | App <term> <term>
+  \end{bnfgrammar}
+  右の奴はメタ変数で表すときにどう書くか
+\end{itembox}
+
+\(\langle variable \rangle\) は人が勝手に決めてよいが、等しいかどうか判定できないといけない。
+具体的には \(\texttt{isEquiv}\) : \(\texttt{variable -> variable -> Bool}\) があっていい性質を満たすことが必要。
+これを \(=\) で書いて場合分けに使う。
+ラムダ項に対して以下のものが定義されていた。
+定理の記号は \([!]\) とし、計算は停止しないもの、決定は停止するものに使う。
+（形式化されているっぽく書いているがこの言語に特に意味論はない。）
+
+\begin{itemize}
+  \item 自由変数 (\(\texttt{freevalueOf}\)) : \(\texttt{term -> list<variable>}\) \\
+    := 項の中にある束縛されていない変数を（リストにして）返す
+  \item 単純な代入 (\(\texttt{simpleSubst}\)) : \(\texttt{term -> variable -> term}\) \\
+    := 項 \(M\) の中に自由変数としてあらわれる変数 \(x\) を \(N\) に置き換える \\
+    with notation \(M\{x \leftarrow N\}\) as \(\texttt{simpleSubst} \, M \, x \, N\)
+  \item \(\alpha\) 同値関係 (\(\texttt{isAlphaEquiv}\)) ： \(\texttt{term -> term -> Prop}\) \\
+    := 次で生成される関係
+      \[\infer[\text{alpha}]{\texttt{Fun} \, x \, M =_{\alpha} \texttt{Fun} \, y \, (M\{x \leftarrow y\})}{(y \notin \texttt{FV}(M))}\]
+      \[\infer[\text{Fun conversion}]{\texttt{Fun} \, x \, M_1 =_{\alpha} \texttt{Fun} \, x \, M_2}{M_1 =_{\alpha} M_2}\]
+      \[\infer[\text{App conversion 1}]{\texttt{App} \, M_1 \, N =_{\alpha} \texttt{App} \, M_1 \, N}{M_1 =_{\alpha} M_1}\]
+      \[\infer[\text{App conversion 2}]{\texttt{App} \, M \, N_1 =_{\alpha} \texttt{App} \, M \, N_2}{N_1 =_{\alpha} N_2}\]
+    with notation \(M =_{\alpha} N\) as \(\texttt{isAlphaEquiv} \, M \, N\)
+  \item \(\alpha\) 同値決定 (\(\texttt{isAlphaEquiv?}\)) : \(\texttt{term -> term -> Bool}\) \\
+    := 次のように帰納的に定義 \\
+      \(M_1\) と \(M_2\) をとりこの構造に着目し以下のように場合分けする。
+      \begin{itemize}
+        \item \(x_1\) と \(x_2\) なら
+          \(x_1 = x_2\) に帰着する。
+        \item \(\texttt{Fun} \, x_1 \, M_1\) と \(\texttt{Fun} \, x_2 \, M_2\) なら
+          \(M_1 =_{\alpha} M_2\{x_2 \leftarrow x_1\}\) に帰着する。
+        \item \(\texttt{App} \, M_1 \, M_2\) と \(\texttt{App} \, N_1 \, N_2\) なら
+          \(M_1 =_{\alpha} N_1\) かつ \(M_2 =_{\alpha} N_2\) に帰着する。
+        \item それ以外は \(\texttt{false}\) とする。
+      \end{itemize}
+  \item[!] \(\alpha\) 同値関係は \(\alpha\) 同値決定で計算できる。
+  \item 捕縛を回避した代入 (\(\texttt{subst}\)) : \(\texttt{term -> variable -> term}\) \\
+    := 項 \(M\) の中に自由変数としてあらわれる変数 \(x\) を \(N\) に置き換えるが、 \(N\) が \(M\) の他の自由変数を束縛しないようにするもの \\
+    with notation \(M[x \leftarrow N]\) as \(\texttt{subst} \, M \, x \, N\)
+  \item \(\beta\) 変換関係 (\(\texttt{isBetaConversion}\)) : \(\texttt{term -> term -> Prop}\) \\
+    := 次で生成される関係
+      \[\infer[\text{from alpha}]{M =_{\beta} N}{M =_{\alpha} N}\]
+      \[\infer[\text{beta}]{\texttt{App} \, (\texttt{Fun} \, x \, M) \, N \to_{\beta} M[x \leftarrow N]}{}\]
+      \[\infer[\text{Fun conversion}]{\texttt{Fun} \, x \, M \to_{\beta} \texttt{Fun} \, x \, N}{M \to_{\beta} N}\]
+      \[\infer[\text{App conversion 1}]{\texttt{App} \, M_1 \, N \to_{\beta} \texttt{App} \, M_1 \, N}{M_1 \to_{\beta} M_1}\]
+      \[\infer[\text{App conversion 2}]{\texttt{App} \, M \, N_1 \to_{\beta} \texttt{App} \, M \, N_2}{N_1 \to_{\beta} N_2}\]
+    with notation \(M \to_{\beta} N\) as \(\texttt{isBetaConversion} \, M \, N\)
+  \item 正規形 (\(\texttt{isNormal}\)) : \(\texttt{term -> Prop}\) \\
+    := \(\beta\) 変換関係においてこれ以上変換できないとき
+  \item 正規形決定 (\(\texttt{isNormal?}\)) : \(\texttt{term -> Bool}\) \\
+    := 次のように帰納的に定義
+      \begin{itemize}
+        \item \(x\) なら true
+        \item \(\texttt{Fun} \, x \, M\) なら \(M\) に帰着
+        \item \(\texttt{App} \, M \, N\) なら \(M\) と \(N\) に帰着
+      \end{itemize}
+  \item[!] 正規形は正規形決定で決定できる
+  \item \(\beta\) 変換 (\(\texttt{conversion}\)) : \(\texttt{term -> term}\) \\
+  := 次のように帰納的に定義
+    \begin{itemize}
+      \item \(x\) ならそのまま
+      \item \(\texttt{Fun} \, x \, M\) なら \(\texttt{Fun} \, x \, (\texttt{conversion} \, M)\)
+      \item \(\texttt{App} \, (\texttt{Fun} \, x \, M) \, N\) なら \(M[x \leftarrow N]\)
+      \item それ以外は \(\texttt{App} \, M \, N\) と書けるが、
+        \begin{itemize}
+          \item \(M\) が正規形なら \(\texttt{App} \, M \, (\texttt{conversion} \, N)\)
+          \item そうでなければ \(\texttt{App} \, (\texttt{conversion} \, M) \, N\)
+        \end{itemize}
+    \end{itemize}
+  注意：このような具体的な関数を作るのは評価戦略を決定することに対応しているため、人によっては \(\beta\) 変換の定義は異なる。
+\item[!] \(\beta\) 変換は \(\beta\) 変換関係と compatible 
+  \item \(\beta\) 簡約関係 (\(\texttt{isBetaReduce}\)) : \(\texttt{term -> term -> Prop}\) \\
+    := \(\beta\) 変換関係の推移閉包
+  \item \(\beta\) 簡約、正規形の計算 (\(\texttt{normalize}\)) : \(\texttt{term -> term}\) \\
+    := 以下のように再帰的に定義
+      \begin{itemize}
+        \item 正規形ならそのまま
+        \item 正規形でないなら \(\texttt{conversion}\) したものを \(\texttt{normalize}\)
+      \end{itemize}
+  \item[!] 正規形計算は停止しないことがあるが、停止すれば正規形が返ってくる。
+  \item \(\beta\) 同値 : \(\texttt{term -> term -> Prop}\) \\
+    := \(\beta\) 変換の同値閉包。
+  \item \(\beta\) 同値計算 : \(\texttt{term -> term -> Bool}\) \\
+    := 項をそれぞれ \(\texttt{normalize}\) して \(\alpha\) 同値か比べる。
+  \item[!] \(\beta\) 同値計算は停止すれば \(\beta\) 同値の判定になる。
+  \item[!] \(\beta\) 簡約関係は合流性を持つ
+\end{itemize}
+
+項の間の同値関係 \(t_1 \equiv t_2\) を次の規則から生成する。
+これは \(\beta\) 同値関係を含む外延的ラムダ計算と呼ばれる体系になる。
+
+\begin{itembox}[l]{ラムダ項の等式}
+  \[\infer[\text{alpha}]{\texttt{Fun} \, x_1 \, t_1 \equiv \texttt{Fun} \, x_2 \, (t_1\{x_1 \leftarrow t_x\})}{x_2 \notin \text{FV}(t_2)}\]
+  \[\infer[\text{beta}]{\texttt{App} \, (\texttt{Fun} \, x \, t_1) \, t_2 \equiv t_2\{x \leftarrow t_2\}}{x \notin \text{FV}(t_2)}\]
+  \[\infer[\text{conversion-fun}]{\texttt{Fun} \, x \, t_1 \equiv \texttt{Fun} \, x \, t_2}{t_1 \equiv t_2}\]
+  \[\infer[\text{conversion-app-1}]{\texttt{App} \, t_1 \, t_2 \equiv \texttt{App} \, t_3 \, t_2}{t_1 \equiv t_3}\]
+  \[\infer[\text{conversion-app-2}]{\texttt{App} \, t_1 \, t_2 \equiv \texttt{App} \, t_1 \, t_3}{t_2 \equiv t_3}\]
+  \[\infer[\text{eta}]{t \equiv \texttt{Fun} \, x \, (\texttt{App} \, t \, x)}{}\]
+\end{itembox}
+
+\end{document}
