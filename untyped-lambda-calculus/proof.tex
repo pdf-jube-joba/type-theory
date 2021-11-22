@@ -1,0 +1,121 @@
+\documentclass[dvipdfmx]{jsarticle}
+
+\usepackage{amsmath , amssymb , amsthm}
+\usepackage{proof , syntax , simplebnf}
+\usepackage{color}
+\usepackage{ascmac}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{定義}
+\newtheorem*{theorem}{定理}
+
+\begin{document}
+\section*{α同値関係がα同値決定で計算できること}
+\begin{definition}
+  初めに証明木の長さを定義しておいたとする。 \\
+  \(\texttt{prooflengthOf} \, M_1 \, M_2\) : \(\texttt{isAlphaEquiv} \, M_1 \, M_2 \to \mathbb{N}\) \\
+  := \textit{by natural definition} \\
+  \(| \cdot |\) で表す。
+  これらは明示的に使うことはないが、帰納法に使う。
+\end{definition}
+
+\begin{theorem}
+  補題を示す。
+  形式化するならもっと多くの補題が必要である。
+  例えば証明木の長さを減らす関数がいっぱい必要かも。
+  \begin{itemize}
+    \item[!]
+      \(x_1 =_{\alpha} x_2\) の証明は refl や sym や trans を使わなくてよく、特に \(x_1 =_{\alpha} x_2\) なら \(x_1 = x_2\)
+    \item[\(\because\)]
+      これは証明木の長さによる。
+      木の長さが \(0\) なら Var conversion しかないのでよい。
+      木の長さが \(0\) でないとする。
+      もし \(x_1 =_{\alpha} x_2\) が証明できるなら証明木は Var conversion か refl か trans か sym で始まる。
+      当然 Var conversion による場合は使ってない。
+      refl の場合は、 Var conversion で代用できる。
+      sym の場合については
+    \item[!]
+      もし \(x_2 \notin \texttt{valueOf} \, M\) なら \(M\{x_1 \leftarrow x_3\} = M\{x_1 \leftarrow x_2\}\{x_2 \leftarrow x_3\}\)
+    \item[!]
+      もし \(c \notin \texttt{boundvalueOf} \, M_i\) なら \((M_1 \{x \leftarrow c\} =_{\alpha}? M_2\{x \leftarrow c\}) = (M_1 =_{\alpha}? M_2)\)
+    \item[!]
+      もし \(c_1 , c_2 \notin \texttt{valueOf} \, M_i\) なら \((M_1\{x \leftarrow c_1\} =_{\alpha}? M_2\{x \leftarrow c_1\}) = (M_1\{x \leftarrow c_2\} =_{\alpha}? M_2\{x \leftarrow c_2\})\)
+    \item[\(\because\)]
+      上の系。
+    \item[!]
+      \texttt{isAlphaEquiv?} は\texttt{反射的対称的推移的}（意味は自然な定義で）である。
+    \item[\(\because\)]
+      反射性については明らか。
+      対称性についても明らか。
+      推移性は明らかでないので証明する。
+      項の長さに関する帰納法によると思う。
+      \(M_1 =_{\alpha}? M_2) = (M_2 =_{\alpha}? M_3) = \texttt{true}\) として \((M_1 =_{\alpha}? M_3) = \texttt{true} \) を示す。
+      場合分けがそれぞれ同じ形だけでよいことに注意する。
+      \(M_1 , M_2 , M_3\) について
+      \begin{itemize}
+      \item 
+        \(x_1 , x_2 , x_3\) のとき。
+        \(x_1 =? x_2 = x_2 =? x_3\) より \(x_1 =? x_3\) である。
+      \item
+        \(\texttt{Fun} \, x_1 \, M_1 , \texttt{Fun} \, x_2 \, M_2 , \texttt{Fun} \, x_3 \, M_3\) のとき。
+        \(M_1\{x_1 \leftarrow c\} =_{\alpha}? M_2\{x_2 \leftarrow c\} = \texttt{true}\) かつ \(M_2\{x_2 \leftarrow c^{\prime}\} =_{\alpha}? M_3\{x_3 \leftarrow c^{\prime}\} = \texttt{true}\) となっている。
+        \begin{align*}
+          M_1\{x_1 \leftarrow c^{\prime \prime}\} =_{\alpha}? M_3\{x_3 \leftarrow c^{\prime \prime}\}
+          &= M_1\{x_1 \leftarrow c\}\{c \leftarrow c^{\prime \prime}\} =_{\alpha}? M_3\{x_3 \leftarrow c^{\prime \prime}\} \\
+          &= M_2\{x_2 \leftarrow c\}\{c \leftarrow c^{\prime \prime}\} =_{\alpha}? M_3\{x_3 \leftarrow c^{\prime \prime}\} \\
+          &= M_2\{x_2 \leftarrow c^{\prime \prime}\} =_{\alpha}? M_3\{x_3 \leftarrow c^{\prime \prime}\} \\
+          &= M_2\{x_2 \leftarrow c^{\prime}\} =_{\alpha}? M_3\{x_3 \leftarrow c^{\prime}\}
+        \end{align*}
+        おそらく一行目から二行目の変形で、「 \(M_1 =_{\alpha} M_2? = \texttt{true}\) なら \((M_1 =_{\alpha}? M_3) = (M_2 =_{\alpha}? M_3)\)」 の証明に項の長さの帰納法の仮定が必要。
+        それ以外は補題と仮定から。
+      \end{itemize}
+    \item[!]
+      もし \(c \notin \texttt{valueOf} \, M_1\) かつ \(c \notin \texttt{valueOf} \, M_2\) なら \(M_1 =_{\alpha}? M_2 = M_1\{x \leftarrow c\} =_{\alpha}? M_2\{x \leftarrow c\}\)
+  \end{itemize}
+  主定理は次のものである。
+  \(M_1 =_{\alpha} M_2\) と \(M_1 =_{\alpha}? M_2 = \texttt{true}\) は同値。
+\end{theorem}
+
+\begin{proof}
+  左から右を示す。
+  \(M_1 , M_2\) の構造と \(\texttt{isAlphaEquiv} \, M_1 \, M_2\) の証明木の長さについての帰納法を用いる。
+  \(M_1 , M_2 , p : \texttt{isAlphaEquiv} \, M_1 \, M_2\) について、形と証明木の長さを考えると次のような場合分けで十分である。
+  \begin{itemize}
+  \item
+    \(|p| = 0\) であり \(x_1 , x_2 , \text{Var conversion}\) のとき、 \(x_1 =? x_2 = \texttt{true}\) が成り立つ。
+    \[(x_1 =_{\alpha}? x_2) = (x_1 =? x_2) = \texttt{true}\]
+  \item
+    \(|p| = 0\) であり \(\texttt{Fun} \, x_1 \, M , \texttt{Fun} \, x_2 \, M\{x_1 \leftarrow x_2\} , \text{alpha}\) のとき、 \(x_2 \notin \texttt{valueOf} \, M\) が成り立つ。
+    \begin{align*}
+      (\texttt{Fun} \, x_1 \, M =_{\alpha}? \texttt{Fun} \, x_2 \, M\{x_1 \leftarrow x_2\})
+      &= (M\{x_1 \leftarrow c\} =_{\alpha}? M\{x_1 \leftarrow x_2\}\{x_2 \leftarrow c\}) \\
+      &= (M\{x_1 \leftarrow c\} =_{\alpha}? M\{x_1 \leftarrow c\}) = \texttt{true}
+    \end{align*}
+      一行目から二行目と最後の変形で補題を用いた。
+  \item
+    \(|p| > 0\) であり \(\texttt{Fun} \, x \, M_1 , \texttt{Fun} \, x \, M_2 , \text{Fun conversion}\) のとき、 \(M_1 =_{\alpha} M_2\) が成り立つ。
+    帰納法の仮定より \(M_1 =_{\alpha}? M_2 = \texttt{true}\) である。
+    \(c\) の取り方を考えれば補題より、
+    \[(\texttt{Fun} \, x \, M_1 =_{\alpha}? \texttt{Fun} \, x \, M_2) = (M_1\{x \leftarrow c\} =_{\alpha}? M_2\{x \leftarrow c\}) = (M_1 =_{\alpha}? M_2) = \texttt{true}\]
+    であるからよい。
+  \item
+    \(|p| > 0\) であり \(\texttt{App} \, M_1 \, N , \texttt{App} \, M_2 \, N , \text{App conversion 1}\) のとき、 \(M_1 =_{\alpha} M_2\) が成り立つ。
+    帰納法の仮定より \(M_1 =_{\alpha}? M_2 = \texttt{true}\) であるから、
+    \[(\texttt{App} \, M_1 \, N =_{\alpha}? \texttt{App} \, M_2 \, N) = (M_1 =_{\alpha}? M_2 \wedge N =_{\alpha}? N) = \texttt{true}\] よりよい。
+  \item
+    \(|p| > 0\) であり \(\texttt{App} \, M \, N_1 , \texttt{App} \, M \, N_2 , \text{App conversion 2}\) のとき、 \(N_1 =_{\alpha} N_2\) が成り立つ。
+    帰納法の仮定より \(N_1 =_{\alpha}? N_2 = \texttt{true}\) であるから、
+    \[(\texttt{App} \, M \, N_1 =_{\alpha}? \texttt{App} \, M \, N_2) = (M =_{\alpha}? M \wedge N_1 =_{\alpha}? N_2) = \texttt{true}\] よりよい。
+  \item
+    \(|p| > 0\) であり、 \(M , M , \text{refl}\) のとき、 \(M =_{\alpha} M\) である。
+    これは \(=_{\alpha}?\) の反射性から、 \(M =_{\alpha}? M = \text{true}\) である。
+  \item
+    \(|p| > 0\) であり、 \(M_1 , M_2 , \text{sym}\) のとき、 \(M_2 =_{\alpha} M_1\) である。
+    帰納法の仮定から \((M_2 =_{\alpha}? M_1) = \text{true}\) であるから、 \(=_{\alpha}?\) の対称性からよい。
+  \item
+    \(|p| > 0\) であり、 \(M_1 , M_2 , \text{trans}\) のとき、 \(M_1 =_{\alpha} M_3 =_{\alpha} M_2\) なる \(M_3\) が存在する。
+    帰納法の仮定から \((M_1 =_{\alpha}? M_3) = (M_3 =_{\alpha}? M_2) = \texttt{true}\) なので \(=_{\alpha}?\) の推移性より良い。
+  \end{itemize}
+\end{proof}
+
+\end{document}

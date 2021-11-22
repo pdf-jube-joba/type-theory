@@ -10,6 +10,9 @@
 \begin{document}
 
 型なしラムダ計算のまとめ。
+これは形式化の一つである。
+このラムダ計算の形式化では変数を必要としているがこれを使わない方法もあり、例としては Debruijn などがある。
+また、単純な代入だけで \(\alpha\) 同値をすますために新しい変数をとる関数を仮定しているが、捕縛回避代入と自由変数と束縛変数を決定できるので、この仮定を使わないこともできるはず。
 
 \begin{itembox}[l]{項の定義}
   \begin{bnfgrammar}
@@ -21,22 +24,40 @@
   右の奴はメタ変数で表すときにどう書くか
 \end{itembox}
 
-\(\langle variable \rangle\) は人が勝手に決めてよいが、等しいかどうか判定できないといけない。
-具体的には \(\texttt{isEquiv}\) : \(\texttt{variable -> variable -> Bool}\) があっていい性質を満たすことが必要。
-これを \(=\) で書いて場合分けに使う。
+\texttt{<variable>} は人が勝手に決めてよいが、等しいかどうか判定できることと、新しい変数を用意できることを要求する。
+具体的には \(\texttt{isEquiv}\) : \(\texttt{variable} \to \texttt{variable} \to \texttt{Bool}\) があって等しさの判定に使えること（これを \(=?\) で書いて場合分けに使う）、 \(\texttt{freshOf}\) : \(\texttt{list<variable>} \to \texttt{variable}\) があって \(\texttt{list<variable>}\) に含まれないものを返せることが必要。
+これがあれば \(x\) : \texttt{variable} と \(L\) : \texttt{list<variable>} に対してこれに含まれているか判定できる。
+\(x \in L\) と書いてしまう。
+
 ラムダ項に対して以下のものが定義されていた。
 定理の記号は \([!]\) とし、計算は停止しないもの、決定は停止するものに使う。
 （形式化されているっぽく書いているがこの言語に特に意味論はない。）
 
+まず変数と代入について。
+
 \begin{itemize}
-  \item 自由変数 (\(\texttt{freevalueOf}\)) : \(\texttt{term -> list<variable>}\) \\
-    := 項の中にある束縛されていない変数を（リストにして）返す
-  \item 単純な代入 (\(\texttt{simpleSubst}\)) : \(\texttt{term -> variable -> term}\) \\
+  \item[*] 自由変数 (\(\texttt{freevalueOf}\)) : \(\texttt{term} \to \texttt{list<variable>}\) \\
+  := 変数が自由かどうか
+  \item[*] 束縛変数 (\(\texttt{boundedvalueOf}\)) : \(\texttt{term} \to \texttt{list<variable>}\) \\
+  := 変数が束縛されるかどうか
+  \item 変数 (\(\texttt{valueOf}\)) : \(\texttt{term} \to \texttt{list<variable>}\) \\
+  := 変数が出現するかどうか
+  \item 単純な代入 (\(\texttt{simpleSubst}\)) : \(\texttt{term} \to \texttt{variable} \to \texttt{term}\) \\
     := 項 \(M\) の中に自由変数としてあらわれる変数 \(x\) を \(N\) に置き換える \\
     with notation \(M\{x \leftarrow N\}\) as \(\texttt{simpleSubst} \, M \, x \, N\)
-  \item \(\alpha\) 同値関係 (\(\texttt{isAlphaEquiv}\)) ： \(\texttt{term -> term -> Prop}\) \\
-    := 次で生成される関係
-      \[\infer[\text{alpha}]{\texttt{Fun} \, x \, M =_{\alpha} \texttt{Fun} \, y \, (M\{x \leftarrow y\})}{(y \notin \texttt{FV}(M))}\]
+  \item[!] 変数の単純な代入は項の形（変数の名前だけ見ないで抽象と適用がどう表れているか）を変えず、特に項の大きさを変えない
+  \item 捕縛を回避した代入 (\(\texttt{subst}\)) : \(\texttt{term} \to \texttt{variable} \to \texttt{term}\) \\
+    := 項 \(M\) の中に自由変数としてあらわれる変数 \(x\) を \(N\) に置き換えるが、 \(N\) が \(M\) の他の自由変数を束縛しないようにするもの \\
+    with notation \(M[x \leftarrow N]\) as \(\texttt{subst} \, M \, x \, N\) \\
+    これの構成は非自明なものになりがち。
+\end{itemize}
+
+次に \(\alpha\) 同値について
+\begin{itemize}
+  \item \(\alpha\) 同値関係 (\(\texttt{isAlphaEquiv}\)) ： \(\texttt{term} \to \texttt{term} \to \texttt{Prop}\) \\
+    := 次で生成される同値関係（閉包をとっていることに注意、この定義自体は small step な感じ）
+      \[\infer[\text{alpha}]{\texttt{Fun} \, x_1 \, M =_{\alpha} \texttt{Fun} \, x_2 \, (M\{x_1 \leftarrow x_2\})}{(x_2 \notin \texttt{valueOf} \, M)}\]
+      \[\infer[\text{Var conversion}]{x_1 =_{\alpha} x_2}{(x_1 =? x_2)}\]
       \[\infer[\text{Fun conversion}]{\texttt{Fun} \, x \, M_1 =_{\alpha} \texttt{Fun} \, x \, M_2}{M_1 =_{\alpha} M_2}\]
       \[\infer[\text{App conversion 1}]{\texttt{App} \, M_1 \, N =_{\alpha} \texttt{App} \, M_1 \, N}{M_1 =_{\alpha} M_1}\]
       \[\infer[\text{App conversion 2}]{\texttt{App} \, M \, N_1 =_{\alpha} \texttt{App} \, M \, N_2}{N_1 =_{\alpha} N_2}\]
@@ -45,77 +66,95 @@
     := 次のように帰納的に定義 \\
       \(M_1\) と \(M_2\) をとりこの構造に着目し以下のように場合分けする。
       \begin{itemize}
-        \item \(x_1\) と \(x_2\) なら
-          \(x_1 = x_2\) に帰着する。
-        \item \(\texttt{Fun} \, x_1 \, M_1\) と \(\texttt{Fun} \, x_2 \, M_2\) なら
-          \(M_1 =_{\alpha} M_2\{x_2 \leftarrow x_1\}\) に帰着する。
-        \item \(\texttt{App} \, M_1 \, M_2\) と \(\texttt{App} \, N_1 \, N_2\) なら
-          \(M_1 =_{\alpha} N_1\) かつ \(M_2 =_{\alpha} N_2\) に帰着する。
+        \item \(x_1\) と \(x_2\) のとき \(x_1 =? x_2\) とする。
+        \item \(\texttt{Fun} \, x_1 \, M_1\) と \(\texttt{Fun} \, x_2 \, M_2\) のとき、
+          \texttt{c} を \(\texttt{freshOf} \, ((\texttt{valueOf} \, M_1) ++ (\texttt{valueOf} \, M_2))\) とおき \\
+          \(M_1 \{x_1 \leftarrow c\} =_{\alpha} M_2 \{x_2 \leftarrow c\}\) とする。
+        \item \(\texttt{App} \, M_1 \, M_2\) と \(\texttt{App} \, N_1 \, N_2\) のとき
+          \(M_1 =_{\alpha} N_1\) かつ \(M_2 =_{\alpha} N_2\) とする。
         \item それ以外は \(\texttt{false}\) とする。
       \end{itemize}
-  \item[!] \(\alpha\) 同値関係は \(\alpha\) 同値決定で計算できる。
-  \item 捕縛を回避した代入 (\(\texttt{subst}\)) : \(\texttt{term -> variable -> term}\) \\
-    := 項 \(M\) の中に自由変数としてあらわれる変数 \(x\) を \(N\) に置き換えるが、 \(N\) が \(M\) の他の自由変数を束縛しないようにするもの \\
-    with notation \(M[x \leftarrow N]\) as \(\texttt{subst} \, M \, x \, N\)
-  \item \(\beta\) 変換関係 (\(\texttt{isBetaConversion}\)) : \(\texttt{term -> term -> Prop}\) \\
+    with notation \(M_1 =_{\alpha}? M_2\) as \(\texttt{isAlphaEquiv?} \, M_1 \, M_2\)
+  \item[!] \(\alpha\) 同値決定は停止し、 \(\alpha\) 同値関係は \(\alpha\) 同値決定で計算できる。
+  \item \(\alpha\) 同値に関する束縛変数の一律付け替え : \(\texttt{term} \to \texttt{list<variable>} \to \texttt{term}\) \\
+    := 名前の通り、束縛変数を一律にリストに含まれないように付け替える
+  \item[\(\dagger\)]これが必要となるのは捕縛回避代入を定義する際に「項の長さに関する帰納法を用いて再帰的に定義する方法」と「一度束縛変数を全ていい感じに付け替えることで行う方法」の二種類があり、後者では必要になるため。
+    何て呼べばいいかわからなかった。
+\end{itemize}
+
+次に \(\beta\) 変換について。
+\begin{itemize}
+  \item \(\beta\) 変換関係 (\(\texttt{isBetaConversion}\)) : \(\texttt{term} \to \texttt{term} \to \texttt{Prop}\) \\
     := 次で生成される関係
-      \[\infer[\text{from alpha}]{M =_{\beta} N}{M =_{\alpha} N}\]
       \[\infer[\text{beta}]{\texttt{App} \, (\texttt{Fun} \, x \, M) \, N \to_{\beta} M[x \leftarrow N]}{}\]
       \[\infer[\text{Fun conversion}]{\texttt{Fun} \, x \, M \to_{\beta} \texttt{Fun} \, x \, N}{M \to_{\beta} N}\]
       \[\infer[\text{App conversion 1}]{\texttt{App} \, M_1 \, N \to_{\beta} \texttt{App} \, M_1 \, N}{M_1 \to_{\beta} M_1}\]
       \[\infer[\text{App conversion 2}]{\texttt{App} \, M \, N_1 \to_{\beta} \texttt{App} \, M \, N_2}{N_1 \to_{\beta} N_2}\]
     with notation \(M \to_{\beta} N\) as \(\texttt{isBetaConversion} \, M \, N\)
-  \item 正規形 (\(\texttt{isNormal}\)) : \(\texttt{term -> Prop}\) \\
+  \item \(\beta\) 簡約関係 (\(\texttt{isBetaReduce}\)) : \(\texttt{term} \to \texttt{term} \to \texttt{Prop}\) \\
+    := \(\beta\) 変換関係 \(+\) \(\alpha\) 同値関係の推移閉包
+  \item[\(\dagger\)] 捕縛回避代入を使わずに単純な代入を使って \(\beta\) 同値を定義するときは、\(\alpha\) 同値で変形できるようにしておく必要がある。
+    その場合は \(\alpha\) 同値の変形を一回と考えると上で定義した \(\beta\) 変換とは全然異なってしまう（正規形がない）など不具合があるので注意。
+  \item 正規形 (\(\texttt{isNormal}\)) : \(\texttt{term} \to \texttt{Prop}\) \\
     := \(\beta\) 変換関係においてこれ以上変換できないとき
-  \item 正規形決定 (\(\texttt{isNormal?}\)) : \(\texttt{term -> Bool}\) \\
+  \item 正規形決定 (\(\texttt{isNormal?}\)) : \(\texttt{term} \to \texttt{Bool}\) \\
     := 次のように帰納的に定義
-      \begin{itemize}
-        \item \(x\) なら true
-        \item \(\texttt{Fun} \, x \, M\) なら \(M\) に帰着
-        \item \(\texttt{App} \, M \, N\) なら \(M\) と \(N\) に帰着
-      \end{itemize}
-  \item[!] 正規形は正規形決定で決定できる
-  \item \(\beta\) 変換 (\(\texttt{conversion}\)) : \(\texttt{term -> term}\) \\
-  := 次のように帰納的に定義
     \begin{itemize}
-      \item \(x\) ならそのまま
-      \item \(\texttt{Fun} \, x \, M\) なら \(\texttt{Fun} \, x \, (\texttt{conversion} \, M)\)
-      \item \(\texttt{App} \, (\texttt{Fun} \, x \, M) \, N\) なら \(M[x \leftarrow N]\)
-      \item それ以外は \(\texttt{App} \, M \, N\) と書けるが、
+      \item \(x\) のとき true
+      \item \(\texttt{Fun} \, x \, M\) のとき \(M\) に帰着
+      \item \(\texttt{App} \, (\texttt{Fun} \, x \, M) \, N\) のとき false
+      \item \(\texttt{App} \, M \, N\) のとき \(M\) と \(N\) に帰着
+    \end{itemize}
+  \item[!] \(\beta\) 簡約関係は合流性を持つ。
+  \item[!] 正規形は正規形決定で決定できる。
+  \item[!] 項の簡約の結果として得られる正規形は \(\alpha\) 同値を除き一意である。
+  \item \(\beta\) 変換 (\(\texttt{betaConversion}\)) : \(\texttt{term} \to \texttt{option<term>}\) \\
+    := 次のように帰納的に定義
+    \begin{itemize}
+      \item \(x\) のとき \(\texttt{None}\)
+      \item \(\texttt{Fun} \, x \, M\) のとき \(\texttt{Fun} \, x \, (\texttt{conversion} \, M)\)
+      \item \(\texttt{App} \, (\texttt{Fun} \, x \, M) \, N\) のとき \(M[x \leftarrow N]\)
+      \item \(\texttt{App} \, M \, N\) のとき
         \begin{itemize}
           \item \(M\) が正規形なら \(\texttt{App} \, M \, (\texttt{conversion} \, N)\)
           \item そうでなければ \(\texttt{App} \, (\texttt{conversion} \, M) \, N\)
         \end{itemize}
     \end{itemize}
-  注意：このような具体的な関数を作るのは評価戦略を決定することに対応しているため、人によっては \(\beta\) 変換の定義は異なる。
-\item[!] \(\beta\) 変換は \(\beta\) 変換関係と compatible 
-  \item \(\beta\) 簡約関係 (\(\texttt{isBetaReduce}\)) : \(\texttt{term -> term -> Prop}\) \\
-    := \(\beta\) 変換関係の推移閉包
-  \item \(\beta\) 簡約、正規形の計算 (\(\texttt{normalize}\)) : \(\texttt{term -> term}\) \\
+  \item[\(\dagger\)] このような具体的な関数を作るのは評価戦略を決定することに対応しているため、人によっては \(\beta\) 変換の定義は異なる。ここでは最左最外の評価戦略をとった（そのために成り立つ性質もある）。
+  また、 \texttt{option} に値を持っているため本当はこれでは定義できていないが、そこはなあなあで。
+  なぜ \texttt{option} かというと \(\beta\) 変換と合わせるためであるが、正規形が決定できることを考えると \(\texttt{term} \to \texttt{term}\) としてもよい。
+  \item[!] \(\beta\) 変換は \(\beta\) 変換関係や簡約関係と compatible
+  \item \(\beta\) 簡約、正規形の計算 (\(\texttt{normalize}\)) : \(\texttt{term} \to \texttt{term}\) \\
     := 以下のように再帰的に定義
       \begin{itemize}
         \item 正規形ならそのまま
         \item 正規形でないなら \(\texttt{conversion}\) したものを \(\texttt{normalize}\)
       \end{itemize}
-  \item[!] 正規形計算は停止しないことがあるが、停止すれば正規形が返ってくる。
-  \item \(\beta\) 同値 : \(\texttt{term -> term -> Prop}\) \\
+  \item[!] 正規形計算は（停止しないことがあるが、）停止すれば正規形が返ってくる。
+  \item[!] 項が簡約による正規形を持てば正規形計算は停止し正規形が返ってくる（最左最外簡約であることから）。
+  \item \(\beta\) 同値 : \(\texttt{term} \to \texttt{term} \to \texttt{Prop}\) \\
     := \(\beta\) 変換の同値閉包。
   \item \(\beta\) 同値計算 : \(\texttt{term -> term -> Bool}\) \\
     := 項をそれぞれ \(\texttt{normalize}\) して \(\alpha\) 同値か比べる。
-  \item[!] \(\beta\) 同値計算は停止すれば \(\beta\) 同値の判定になる。
-  \item[!] \(\beta\) 簡約関係は合流性を持つ
+  \item[!] \(\beta\) 同値計算は停止すれば \(\beta\) 同値の計算になる。
+  \item[!] \(\beta\) 同値計算は共に正規形を持つ項の \(\beta\) 同値の決定になる。 
+  \item[\(\dagger\)] 注意として、一方が正規形を持ち他方が正規形を持たない場合は \(\beta\) 同値ではないが、それはこの方法では決定できない。
+    また、共に正規形を持たないが \(\beta\) 同値である場合が存在するが、この場合もこの方法では決定できない。
+    これらを含めて計算するには、\(\beta\) 変換を両方にかけて（これは停止する）これまで出てきた項と比べるなどする必要がある。
 \end{itemize}
 
 項の間の同値関係 \(t_1 \equiv t_2\) を次の規則から生成する。
-これは \(\beta\) 同値関係を含む外延的ラムダ計算と呼ばれる体系になる。
+これは \(\alpha\) 同値関係と \(\beta\) 同値関係を含みかつ関数の外延性を得るので、外延的ラムダ計算と呼ばれる体系になる。
 
 \begin{itembox}[l]{ラムダ項の等式}
-  \[\infer[\text{alpha}]{\texttt{Fun} \, x_1 \, t_1 \equiv \texttt{Fun} \, x_2 \, (t_1\{x_1 \leftarrow t_x\})}{x_2 \notin \text{FV}(t_2)}\]
-  \[\infer[\text{beta}]{\texttt{App} \, (\texttt{Fun} \, x \, t_1) \, t_2 \equiv t_2\{x \leftarrow t_2\}}{x \notin \text{FV}(t_2)}\]
+  \[\infer[\text{alpha}]{\texttt{Fun} \, x_1 \, t_1 \equiv \texttt{Fun} \, x_2 \, (t_1\{x_1 \leftarrow x_2\})}{x_2 \notin \texttt{valueOf} \, t_2}\]
+  \[\infer[\text{beta}]{\texttt{App} \, (\texttt{Fun} \, x \, t_1) \, t_2 \equiv t_1\{x \leftarrow t_2\}}{\texttt{boundedvalueOf} \, t_1 \cap \texttt{freevalueOf} \, t_2 = \emptyset}\]
+  \[\infer[\text{conversion Var}]{x_1 \equiv x_2}{x_1 =? x_2}\]
   \[\infer[\text{conversion-fun}]{\texttt{Fun} \, x \, t_1 \equiv \texttt{Fun} \, x \, t_2}{t_1 \equiv t_2}\]
-  \[\infer[\text{conversion-app-1}]{\texttt{App} \, t_1 \, t_2 \equiv \texttt{App} \, t_3 \, t_2}{t_1 \equiv t_3}\]
-  \[\infer[\text{conversion-app-2}]{\texttt{App} \, t_1 \, t_2 \equiv \texttt{App} \, t_1 \, t_3}{t_2 \equiv t_3}\]
+  \[\infer[\text{conversion-app}]{\texttt{App} \, t_1 \, t_2 \equiv \texttt{App} \, t_3 \, t_4}{t_1 \equiv t_3 & t_2 \equiv t_4}\]
   \[\infer[\text{eta}]{t \equiv \texttt{Fun} \, x \, (\texttt{App} \, t \, x)}{}\]
 \end{itembox}
+
+conversion というときにはこれを指すことで後々楽になるかもしれないが、これを計算する関数を作るのはいろいろ大変。
 
 \end{document}

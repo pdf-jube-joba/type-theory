@@ -1,0 +1,52 @@
+\documentclass[dvipdfmx]{jsarticle}
+
+\usepackage{amsmath , amssymb}
+\usepackage{proof , syntax , simplebnf}
+\usepackage{color}
+\usepackage{ascmac}
+
+\newcommand{\clause}[1]{\langle #1 \rangle}
+
+\begin{document}
+
+単純型付きラムダ計算のまとめ
+Church 流である。
+
+\begin{itembox}[l]{項と型の定義}
+  \begin{bnfgrammar}
+    <type> ::= : T
+    | <type-variable> : X
+    | Arr <type> <type>
+  \end{bnfgrammar}
+  \begin{bnfgrammar}
+    <term> ::= : t 
+    | <term-variable> : x
+    | Fun <term-variable> <type> <term>
+    | App <term> <term>
+  \end{bnfgrammar}
+  \begin{bnfgrammar}
+    <context> ::= : G
+    | (<term-variable> , <type>) <context>
+  \end{bnfgrammar}
+\end{itembox}
+
+これらに対して次のものが型なしラムダ計算と同様にして定義される。
+\begin{itemize}
+  \item 自由変数・捕縛を回避した代入
+  \item \(\alpha\) 同値関係・ \(\alpha\) 同値決定
+  \item \(\beta\) 変換関係・ \(\beta\) 変換（評価戦略による）・正規形
+  \item \(\beta\) 簡約関係・ \(\beta\) 簡約（評価戦略による）
+  \item \(\beta\) 同値関係・ \(\beta\) 同値計算
+\end{itemize}
+
+これらに加えて次のものが定義される。
+
+\begin{itemize}
+  \item 型判断 (\(\texttt{type-judgement}\)) : \(\texttt{context -> term -> type -> Prop}\) \\
+    := 以下のもので生成する
+    \begin{itemize}
+      \item 
+    \end{itemize}
+\end{itemize}
+
+\end{document}
