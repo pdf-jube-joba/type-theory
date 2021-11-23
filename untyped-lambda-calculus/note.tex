@@ -17,7 +17,7 @@
 \begin{itembox}[l]{項の定義}
   \begin{bnfgrammar}
     <term> ::= : t , M
-    | <variable> : x
+    | Var <variable> : x
     | Fun <variable> <term>
     | App <term> <term>
   \end{bnfgrammar}
@@ -36,16 +36,16 @@
 まず変数と代入について。
 
 \begin{itemize}
-  \item[*] 自由変数 (\(\texttt{freevalueOf}\)) : \(\texttt{term} \to \texttt{list<variable>}\) \\
-  := 変数が自由かどうか
-  \item[*] 束縛変数 (\(\texttt{boundedvalueOf}\)) : \(\texttt{term} \to \texttt{list<variable>}\) \\
-  := 変数が束縛されるかどうか
+  \item 自由変数 (\(\texttt{freevalueOf}\)) : \(\texttt{term} \to \texttt{list<variable>}\) \\
+  := \texttt{変数が自由かどうか}
+  \item 束縛変数 (\(\texttt{boundedvalueOf}\)) : \(\texttt{term} \to \texttt{list<variable>}\) \\
+  := \texttt{変数が束縛されるかどうか}
   \item 変数 (\(\texttt{valueOf}\)) : \(\texttt{term} \to \texttt{list<variable>}\) \\
-  := 変数が出現するかどうか
+  := \texttt{変数が出現するかどうか}
   \item 単純な代入 (\(\texttt{simpleSubst}\)) : \(\texttt{term} \to \texttt{variable} \to \texttt{term}\) \\
     := 項 \(M\) の中に自由変数としてあらわれる変数 \(x\) を \(N\) に置き換える \\
     with notation \(M\{x \leftarrow N\}\) as \(\texttt{simpleSubst} \, M \, x \, N\)
-  \item[!] 変数の単純な代入は項の形（変数の名前だけ見ないで抽象と適用がどう表れているか）を変えず、特に項の大きさを変えない
+  \item[!] 変数を単純に代入する場合は項の形（変数の名前だけ見ないで抽象と適用がどう表れているか）を変えず、特に項の大きさを変えない
   \item 捕縛を回避した代入 (\(\texttt{subst}\)) : \(\texttt{term} \to \texttt{variable} \to \texttt{term}\) \\
     := 項 \(M\) の中に自由変数としてあらわれる変数 \(x\) を \(N\) に置き換えるが、 \(N\) が \(M\) の他の自由変数を束縛しないようにするもの \\
     with notation \(M[x \leftarrow N]\) as \(\texttt{subst} \, M \, x \, N\) \\
@@ -56,24 +56,28 @@
 \begin{itemize}
   \item \(\alpha\) 同値関係 (\(\texttt{isAlphaEquiv}\)) ： \(\texttt{term} \to \texttt{term} \to \texttt{Prop}\) \\
     := 次で生成される同値関係（閉包をとっていることに注意、この定義自体は small step な感じ）
+    \begin{itembox}[l]{\(\alpha\) 同値関係}
       \[\infer[\text{alpha}]{\texttt{Fun} \, x_1 \, M =_{\alpha} \texttt{Fun} \, x_2 \, (M\{x_1 \leftarrow x_2\})}{(x_2 \notin \texttt{valueOf} \, M)}\]
-      \[\infer[\text{Var conversion}]{x_1 =_{\alpha} x_2}{(x_1 =? x_2)}\]
+      \[\infer[\text{Var conversion}]{\texttt{Var} \, x_1 =_{\alpha} \texttt{Var} \, x_2}{(x_1 =? x_2)}\]
       \[\infer[\text{Fun conversion}]{\texttt{Fun} \, x \, M_1 =_{\alpha} \texttt{Fun} \, x \, M_2}{M_1 =_{\alpha} M_2}\]
       \[\infer[\text{App conversion 1}]{\texttt{App} \, M_1 \, N =_{\alpha} \texttt{App} \, M_1 \, N}{M_1 =_{\alpha} M_1}\]
       \[\infer[\text{App conversion 2}]{\texttt{App} \, M \, N_1 =_{\alpha} \texttt{App} \, M \, N_2}{N_1 =_{\alpha} N_2}\]
+    \end{itembox}
     with notation \(M =_{\alpha} N\) as \(\texttt{isAlphaEquiv} \, M \, N\)
-  \item \(\alpha\) 同値決定 (\(\texttt{isAlphaEquiv?}\)) : \(\texttt{term -> term -> Bool}\) \\
+  \item \(\alpha\) 同値決定 (\(\texttt{isAlphaEquiv?}\)) : \(\texttt{term} \to \texttt{term} \to \texttt{Bool}\) \\
     := 次のように帰納的に定義 \\
-      \(M_1\) と \(M_2\) をとりこの構造に着目し以下のように場合分けする。
-      \begin{itemize}
-        \item \(x_1\) と \(x_2\) のとき \(x_1 =? x_2\) とする。
-        \item \(\texttt{Fun} \, x_1 \, M_1\) と \(\texttt{Fun} \, x_2 \, M_2\) のとき、
+      \begin{itembox}[l]{\(\alpha\) 同値決定}
+        \(M_1 =_{\alpha} M_2\) := \(M_1\) と \(M_2\) について
+        \begin{itemize}
+          \item \(\texttt{Var} \, x_1\) と \(\texttt{Var} \, x_2\) のとき \(x_1 =? x_2\) とする。
+          \item \(\texttt{Fun} \, x_1 \, M_1\) と \(\texttt{Fun} \, x_2 \, M_2\) のとき、
           \texttt{c} を \(\texttt{freshOf} \, ((\texttt{valueOf} \, M_1) ++ (\texttt{valueOf} \, M_2))\) とおき \\
           \(M_1 \{x_1 \leftarrow c\} =_{\alpha} M_2 \{x_2 \leftarrow c\}\) とする。
-        \item \(\texttt{App} \, M_1 \, M_2\) と \(\texttt{App} \, N_1 \, N_2\) のとき
+          \item \(\texttt{App} \, M_1 \, M_2\) と \(\texttt{App} \, N_1 \, N_2\) のとき
           \(M_1 =_{\alpha} N_1\) かつ \(M_2 =_{\alpha} N_2\) とする。
-        \item それ以外は \(\texttt{false}\) とする。
-      \end{itemize}
+          \item それ以外は \(\texttt{false}\) とする。
+        \end{itemize}
+      \end{itembox}
     with notation \(M_1 =_{\alpha}? M_2\) as \(\texttt{isAlphaEquiv?} \, M_1 \, M_2\)
   \item[!] \(\alpha\) 同値決定は停止し、 \(\alpha\) 同値関係は \(\alpha\) 同値決定で計算できる。
   \item \(\alpha\) 同値に関する束縛変数の一律付け替え : \(\texttt{term} \to \texttt{list<variable>} \to \texttt{term}\) \\
@@ -86,21 +90,24 @@
 \begin{itemize}
   \item \(\beta\) 変換関係 (\(\texttt{isBetaConversion}\)) : \(\texttt{term} \to \texttt{term} \to \texttt{Prop}\) \\
     := 次で生成される関係
+    \begin{itembox}[l]{\(\beta\) 変換関係}
       \[\infer[\text{beta}]{\texttt{App} \, (\texttt{Fun} \, x \, M) \, N \to_{\beta} M[x \leftarrow N]}{}\]
       \[\infer[\text{Fun conversion}]{\texttt{Fun} \, x \, M \to_{\beta} \texttt{Fun} \, x \, N}{M \to_{\beta} N}\]
       \[\infer[\text{App conversion 1}]{\texttt{App} \, M_1 \, N \to_{\beta} \texttt{App} \, M_1 \, N}{M_1 \to_{\beta} M_1}\]
       \[\infer[\text{App conversion 2}]{\texttt{App} \, M \, N_1 \to_{\beta} \texttt{App} \, M \, N_2}{N_1 \to_{\beta} N_2}\]
+    \end{itembox}
     with notation \(M \to_{\beta} N\) as \(\texttt{isBetaConversion} \, M \, N\)
+  \item[\(\dagger\)] ここでは捕縛回避代入を用いた。
+    捕縛回避代入を使わずに単純な代入を使って \(\beta\) 変換を定義するときは、 \(\beta\) に条件が付き、 \(\alpha\) 同値で変形できるようにしておく必要がある。
+    その場合は \(\alpha\) 同値の変形を一回と考えると上で定義した \(\beta\) 変換とは全然異なってしまう（正規形がない）など不具合があるので注意。
   \item \(\beta\) 簡約関係 (\(\texttt{isBetaReduce}\)) : \(\texttt{term} \to \texttt{term} \to \texttt{Prop}\) \\
     := \(\beta\) 変換関係 \(+\) \(\alpha\) 同値関係の推移閉包
-  \item[\(\dagger\)] 捕縛回避代入を使わずに単純な代入を使って \(\beta\) 同値を定義するときは、\(\alpha\) 同値で変形できるようにしておく必要がある。
-    その場合は \(\alpha\) 同値の変形を一回と考えると上で定義した \(\beta\) 変換とは全然異なってしまう（正規形がない）など不具合があるので注意。
   \item 正規形 (\(\texttt{isNormal}\)) : \(\texttt{term} \to \texttt{Prop}\) \\
     := \(\beta\) 変換関係においてこれ以上変換できないとき
   \item 正規形決定 (\(\texttt{isNormal?}\)) : \(\texttt{term} \to \texttt{Bool}\) \\
     := 次のように帰納的に定義
     \begin{itemize}
-      \item \(x\) のとき true
+      \item \(\texttt{Var} \, x\) のとき true
       \item \(\texttt{Fun} \, x \, M\) のとき \(M\) に帰着
       \item \(\texttt{App} \, (\texttt{Fun} \, x \, M) \, N\) のとき false
       \item \(\texttt{App} \, M \, N\) のとき \(M\) と \(N\) に帰着
@@ -111,7 +118,7 @@
   \item \(\beta\) 変換 (\(\texttt{betaConversion}\)) : \(\texttt{term} \to \texttt{option<term>}\) \\
     := 次のように帰納的に定義
     \begin{itemize}
-      \item \(x\) のとき \(\texttt{None}\)
+      \item \(\texttt{Var} \, x\) のとき \(\texttt{None}\)
       \item \(\texttt{Fun} \, x \, M\) のとき \(\texttt{Fun} \, x \, (\texttt{conversion} \, M)\)
       \item \(\texttt{App} \, (\texttt{Fun} \, x \, M) \, N\) のとき \(M[x \leftarrow N]\)
       \item \(\texttt{App} \, M \, N\) のとき

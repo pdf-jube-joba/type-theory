@@ -15,26 +15,28 @@ Church 流である。
 \begin{itembox}[l]{項と型の定義}
   \begin{bnfgrammar}
     <type> ::= : T
-    | <type-variable> : X
+    | <base-type> : X
     | Arr <type> <type>
   \end{bnfgrammar}
   \begin{bnfgrammar}
     <term> ::= : t 
-    | <term-variable> : x
+    | Var <term-variable> : x
     | Fun <term-variable> <type> <term>
     | App <term> <term>
   \end{bnfgrammar}
   \begin{bnfgrammar}
     <context> ::= : G
-    | (<term-variable> , <type>) <context>
+    | <context>,(<term-variable> , <type>)
   \end{bnfgrammar}
 \end{itembox}
 
+\texttt{<variable>} に対しては形無しラムダ計算と同様の性質が要求されるが、単純型付きラムダ計算では \texttt{<base-type>} に対しても「等しさが決定できること」などが要求される。
+これがあれば \texttt{<type>} の元について合成が定義できる。
 これらに対して次のものが型なしラムダ計算と同様にして定義される。
 \begin{itemize}
-  \item 自由変数・捕縛を回避した代入
+  \item 自由変数・束縛変数・単純な代入・捕縛を回避した代入
   \item \(\alpha\) 同値関係・ \(\alpha\) 同値決定
-  \item \(\beta\) 変換関係・ \(\beta\) 変換（評価戦略による）・正規形
+  \item \(\beta\) 変換関係・正規形・正規形決定・ \(\beta\) 変換（評価戦略による）
   \item \(\beta\) 簡約関係・ \(\beta\) 簡約（評価戦略による）
   \item \(\beta\) 同値関係・ \(\beta\) 同値計算
 \end{itemize}
@@ -42,11 +44,27 @@ Church 流である。
 これらに加えて次のものが定義される。
 
 \begin{itemize}
-  \item 型判断 (\(\texttt{type-judgement}\)) : \(\texttt{context -> term -> type -> Prop}\) \\
-    := 以下のもので生成する
-    \begin{itemize}
-      \item 
-    \end{itemize}
+  \item 型判断 (\(\texttt{type-judgement}\)) : \(\texttt{context} \to \texttt{term} \to \texttt{type} \to \texttt{Prop}\) \\
+  := 以下のもので生成
+  \begin{itembox}[l]{型判断の定義}
+    \[\infer[\text{weak}]{\Gamma , \_ \vdash t : A}{\Gamma \vdash t : A}\]
+    \[\infer[\text{Var}]{\Gamma , (x,A) \vdash x : A}{}\]
+    \[\infer[\text{Fun}]{\Gamma \vdash \texttt{Fun} \, (x : A) \, M : A \to B}{\Gamma , (x:A) \vdash M : B}\]
+    \[\infer[\text{App}]{\Gamma \vdash \texttt{App} \, M \, N : B}{\Gamma \vdash M : A \to B & \Gamma \vdash N : A}\]
+  \end{itembox}
+  
+  \item 型を推論する関数 \texttt{typeOf} : \(\texttt{context} \to \texttt{term} \to \texttt{option<type>}\) \\
+  := \(\texttt{typeOf} \, G \, t\) := \(t\) について
+  \begin{itemize}
+    \item \(\texttt{Var} \, x\) のとき \(G(x)\)
+    \item \(\texttt{Fun} \, (x : A) \, M\) のとき \(A \to \texttt{typeOf} \, (G , (x : A)) \, M\)
+    \item \(\texttt{App} \, M \, N\) のとき \(\texttt{typeOf} \, G \, M\) と \(\texttt{typeOf} \, G \, N\) の合成。
+  \end{itemize}
+  \item[!] \(G \vdash x : \texttt{typeOf} \, x\)
+  \item[!] 型は存在すれば一意
+  \item[!] 型が存在すれば強正規化可能 
+  \item 型判断を決定する関数 \texttt{isTypable} : \(\texttt{context} \to \texttt{term} \to \texttt{type} \to \texttt{Bool}\) \\
+  := 型を推論する関数を使う。
+  \item[\(\dagger\)] 型判断を決定する関数を普通に定義しようとすると、 \(\texttt{App}\) の部分で型推論が必要になりつまるので基本的に型判断を決定する関数は推論する関数を用いる。
 \end{itemize}
-
 \end{document}
